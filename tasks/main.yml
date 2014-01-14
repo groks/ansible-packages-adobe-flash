@@ -1,0 +1,26 @@
+---
+
+# Check whether repo package is installed before forcing a network download.
+
+- name: is the adobe repo installed
+  command: rpm -q adobe-release-{{ ansible_machine }}
+  register: adobe_release_installed
+  ignore_errors: True
+  changed_when: adobe_release_installed|failed
+
+# Install missing repo package.
+
+- name: install adobe yum repo
+  yum:
+    name: http://linuxdownload.adobe.com/adobe-release/adobe-release-{{ ansible_machine }}-1.0-1.noarch.rpm
+    state: present
+  when: adobe_release_installed|failed
+
+- name: install flash-plugin
+  yum: name=flash-plugin state=present
+
+- name: fix flash-plugin full-screen bug
+  lineinfile:
+    dest: /usr/share/applications/firefox.desktop
+    regexp: ^Exec=
+    line: Exec=env LD_PRELOAD=/usr/lib{% if ansible_userspace_bits == "64" %}64{% endif %}/libGL.so.1 firefox %u
